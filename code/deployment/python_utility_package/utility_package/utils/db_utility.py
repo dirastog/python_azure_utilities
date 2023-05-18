@@ -216,3 +216,26 @@ class DBConnection:
         )
         query = "SET NOCOUNT ON;" + query
         return self.get_df_from_query(query)
+
+   
+def insert_data_in_parts(db_obj, schema, sp_name, input_df, table_type_name):
+    '''
+    This method is used to insert data into SQL
+    by dividing the Dataframe into batches if the total records in dataframe
+    are greater than 20k.
+    '''
+    max_files_in_batch = 20000
+    batches = int (len(input_df)/max_files_in_batch)
+    print(f"Total Batches: {batches}")
+    
+    min_index = 0
+    for i in range (0, batches):
+        max_index = min_index + max_files_in_batch
+        print(f"Inserting Batch {i+1} from index: {min_index} to {max_index}")
+        data = input_df.iloc[min_index: max_index]
+        db_obj.insert_data_from_df(schema, sp_name, data, table_type_name)
+        min_index = max_index
+    if len(input_df) > max_index:
+        print(f"Inserting Remaining Data")
+        data = input_df.iloc[max_index:]
+        db_obj.insert_data_from_df(schema, sp_name, data, table_type_name)
